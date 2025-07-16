@@ -319,6 +319,9 @@ services:
         - NEXT_PUBLIC_THEME=${NEXT_PUBLIC_THEME:-}
         # DO NOT TURN ON unless you have EXPLICIT PERMISSION from Onyx.
         - NEXT_PUBLIC_DO_NOT_USE_TOGGLE_OFF_DANSWER_POWERED=${NEXT_PUBLIC_DO_NOT_USE_TOGGLE_OFF_DANSWER_POWERED:-false}
+        # Increases the max memory for the node process to avoid:
+        # "FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory"
+        - NODE_OPTIONS=--max-old-space-size=4096
     depends_on:
       - api_server
     restart: unless-stopped
