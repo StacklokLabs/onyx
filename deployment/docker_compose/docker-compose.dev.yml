@@ -7,7 +7,7 @@ services:
     command: >
       /bin/sh -c "alembic upgrade head &&
       echo \"Starting Onyx Api Server\" &&
-      uvicorn onyx.main:app --host 0.0.0.0 --port 8080"
+      uvicorn onyx.main:app --host 0.0.0.0 --port 8080 --reload"
     depends_on:
       - relational_db
       - index
@@ -151,6 +151,7 @@ services:
         max-file: "6"
     # optional, only for debugging purposes
     volumes:
+      - ../../backend/onyx:/app/onyx:rw
       - api_server_logs:/var/log
 
   background:
