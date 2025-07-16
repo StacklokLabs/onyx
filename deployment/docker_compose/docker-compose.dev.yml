@@ -16,6 +16,10 @@ services:
     restart: unless-stopped
     ports:
       - "8080:8080"
+    deploy:
+      resources:
+        limits:
+          memory: 8G
     environment:
       # Auth Settings
       - AUTH_TYPE=${AUTH_TYPE:-disabled}
@@ -167,6 +171,10 @@ services:
       - inference_model_server
       - indexing_model_server
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 6G
     environment:
       - ENCRYPTION_KEY_SECRET=${ENCRYPTION_KEY_SECRET:-}
       - JWT_PUBLIC_KEY_URL=${JWT_PUBLIC_KEY_URL:-} # used for JWT authentication of users via API
@@ -323,6 +331,10 @@ services:
     depends_on:
       - api_server
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     environment:
       - INTERNAL_URL=http://api_server:8080
       - WEB_DOMAIN=${WEB_DOMAIN:-}
@@ -343,9 +355,13 @@ services:
         echo 'Skipping service...';
         exit 0;
       else
-        exec uvicorn model_server.main:app --host 0.0.0.0 --port 9000;
+        exec uvicorn model_server.main:app --host 0.0.0.0 --port 9000 --reload;
       fi"
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 4G
     environment:
       - MIN_THREADS_ML_MODELS=${MIN_THREADS_ML_MODELS:-}
       # Set to debug to get more fine-grained logs
@@ -377,6 +393,10 @@ services:
         exec uvicorn model_server.main:app --host 0.0.0.0 --port 9000;
       fi"
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
     environment:
       - INDEX_BATCH_SIZE=${INDEX_BATCH_SIZE:-}
       - MIN_THREADS_ML_MODELS=${MIN_THREADS_ML_MODELS:-}
@@ -403,9 +423,14 @@ services:
     shm_size: 1g
     command: -c 'max_connections=250'
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-postgres}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-password}
+      - POSTGRES_DB=onyx
       - DB_READONLY_USER=${DB_READONLY_USER:-}
       - DB_READONLY_PASSWORD=${DB_READONLY_PASSWORD:-}
     ports:
@@ -417,8 +442,13 @@ services:
   index:
     image: vespaengine/vespa:8.526.15
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 4G
     environment:
       - VESPA_SKIP_UPGRADE_CHECK=true
+      - VESPA_IGNORE_NOT_ENOUGH_MEMORY=true
     ports:
       - "19071:19071"
       - "8081:8081"
@@ -438,6 +468,10 @@ services:
     depends_on:
       - api_server
       - web_server
+    deploy:
+      resources:
+        limits:
+          memory: 256M
     environment:
       - DOMAIN=localhost
     ports:
@@ -456,12 +490,16 @@ services:
     # NOTE: we have to use dos2unix to remove Carriage Return chars from the file
     # in order to make this work on both Unix-like systems and windows
     command: >
-      /bin/sh -c "dos2unix /etc/nginx/conf.d/run-nginx.sh 
+      /bin/sh -c "dos2unix /etc/nginx/conf.d/run-nginx.sh
       && /etc/nginx/conf.d/run-nginx.sh app.conf.template.dev"
 
   cache:
     image: redis:7.4-alpine
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
     ports:
       - "6379:6379"
     # docker silently mounts /data even without an explicit volume mount, which enables
@@ -471,6 +509,10 @@ services:
   minio:
     image: minio/minio:latest
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
     ports:
       - "9004:9000"
       - "9005:9001"
