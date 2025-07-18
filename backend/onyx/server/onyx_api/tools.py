@@ -30,6 +30,17 @@ class SearchToolRequest(BaseModel):
     query: str
 
 
+class DocumentResult(BaseModel):
+    document_id: str
+    title: str
+    content: str
+    source_type: str
+    link: str | None
+    source_links: dict[int, str] | None
+    metadata: dict[str, str | list[str]]
+    updated_at: str | None
+
+
 class SearchToolResponse(BaseModel):
     results: str
 
@@ -82,14 +93,19 @@ def search_tool_endpoint(
             results.append(response)
 
         # Extract the final context documents
-        final_docs_response = next(
-            (response for response in results if response.id == FINAL_CONTEXT_DOCUMENTS_ID),
-            None
-        )
+        final_docs_response = next((response for response in results if response.id == FINAL_CONTEXT_DOCUMENTS_ID), None)
 
         if final_docs_response:
-            final_docs = build_complete_context_str(final_docs_response.response)
-            return SearchToolResponse(results=final_docs)
+            # Extract document information for structured response
+            for doc in final_docs_response.response:
+                if doc.metadata:
+                    doc.metadata["link"] = doc.link
+                else:
+                    doc.metadata = {"link": doc.link}
+
+            final_docs_str = build_complete_context_str(final_docs_response.response)
+
+            return SearchToolResponse(results=final_docs_str)
         else:
             logger.warning("No final context documents found in search results")
             return SearchToolResponse(results="")
