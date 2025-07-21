@@ -30,17 +30,6 @@ class SearchToolRequest(BaseModel):
     query: str
 
 
-class DocumentResult(BaseModel):
-    document_id: str
-    title: str
-    content: str
-    source_type: str
-    link: str | None
-    source_links: dict[int, str] | None
-    metadata: dict[str, str | list[str]]
-    updated_at: str | None
-
-
 class SearchToolResponse(BaseModel):
     results: str
 
