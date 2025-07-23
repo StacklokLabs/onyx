@@ -731,7 +731,7 @@ configMap:
   # Logging
   # Optional Telemetry, please keep it on (nothing sensitive is collected)? <3
   # https://docs.onyx.app/more/telemetry
-  DISABLE_TELEMETRY: ""
+  DISABLE_TELEMETRY: "true"
   LOG_LEVEL: ""
   LOG_ALL_MODEL_INTERACTIONS: ""
   LOG_DANSWER_MODEL_INTERACTIONS: ""
