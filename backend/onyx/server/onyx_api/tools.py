@@ -46,7 +46,7 @@ class FoundDocSearchTool(BaseModel):
 @router.post("/search-tool")
 def search_tool_endpoint(
     request: SearchToolRequest,
-    _: User | None = Depends(api_key_dep),
+    search_user: User | None = Depends(api_key_dep),
     db_session: Session = Depends(get_session),
 ) -> list[FoundDocSearchTool]:
     """
@@ -73,7 +73,7 @@ def search_tool_endpoint(
     # Create SearchTool instance
     search_tool = SearchTool(
         db_session=db_session,
-        user=None,  # No specific user
+        user=search_user,
         persona=persona,
         retrieval_options=retrieval_options,
         prompt_config=prompt_config,
