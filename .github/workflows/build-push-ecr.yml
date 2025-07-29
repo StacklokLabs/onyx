@@ -182,7 +182,7 @@ jobs:
           helm package deployment/helm/charts/onyx
           
           # Verify Onyx chart was created
-          if [ ! -f onyx-*.tgz ]; then
+          if [ ! -f onyx-stack-*.tgz ]; then
             echo "Error: Onyx chart package was not created"
             exit 1
           fi
@@ -198,7 +198,7 @@ jobs:
 
           # Push Onyx chart
           echo "Pushing Onyx chart..."
-          ONYX_CHART=$(ls onyx-[0-9]*.tgz 2>/dev/null || true)
+          ONYX_CHART=$(ls onyx-stack-*.tgz 2>/dev/null || true)
           if [ -z "$ONYX_CHART" ]; then
             echo "Error: Onyx chart package not found in root directory"
             echo "Current directory contents:"
