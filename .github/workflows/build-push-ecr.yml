@@ -88,6 +88,7 @@ jobs:
       - name: Create ECR repositories
         run: |
           # Create repositories if they don't exist
+          aws ecr describe-repositories --repository-names onyx-stack || aws ecr create-repository --repository-name onyx-stack
           aws ecr describe-repositories --repository-names onyx || aws ecr create-repository --repository-name onyx
           aws ecr describe-repositories --repository-names onyx-model-server || aws ecr create-repository --repository-name onyx-model-server
           aws ecr describe-repositories --repository-names minio || aws ecr create-repository --repository-name minio
@@ -99,23 +100,23 @@ jobs:
           # Note: We don't need to create a separate repository for Helm charts
           # as they will be stored in the 'onyx' repository alongside the images
 
-      # - name: Build and push Onyx backend image
-      #   uses: docker/build-push-action@v5
-      #   with:
-      #     context: ./backend
-      #     file: ./backend/Dockerfile
-      #     push: true
-      #     tags: >-
-      #       ${{ env.ECR_REGISTRY }}/onyx:${{ steps.versions.outputs.version }}
+      - name: Build and push Onyx backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: >-
+            ${{ env.ECR_REGISTRY }}/onyx:${{ steps.versions.outputs.version }}
 
-      # - name: Build and push Onyx model server image
-      #   uses: docker/build-push-action@v5
-      #   with:
-      #     context: ./backend
-      #     file: ./backend/Dockerfile.model_server
-      #     push: true
-      #     tags: >-
-      #       ${{ env.ECR_REGISTRY }}/onyx-model-server:${{ steps.versions.outputs.version }}
+      - name: Build and push Onyx model server image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile.model_server
+          push: true
+          tags: >-
+            ${{ env.ECR_REGISTRY }}/onyx-model-server:${{ steps.versions.outputs.version }}
 
       # Pull and push subchart images
       - name: Pull and push MinIO image
