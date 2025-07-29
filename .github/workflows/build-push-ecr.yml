@@ -1,12 +1,12 @@
 name: Build and Push to ECR
 
 'on':
-  # push:
-  #   branches: [stacklok-main]
-  #   paths:
-  #     - 'backend/Dockerfile'
-  #     - 'backend/Dockerfile.model_server'
-  #     - 'deployment/helm/charts/onyx/**'
+  push:
+    branches: [stacklok-main]
+    paths:
+      - 'backend/Dockerfile'
+      - 'backend/Dockerfile.model_server'
+      - 'deployment/helm/charts/onyx/**'
   workflow_dispatch:
 
 env:
@@ -79,6 +79,20 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
+      - name: Create ECR repositories
+        run: |
+          # Create repositories if they don't exist
+          aws ecr describe-repositories --repository-names onyx || aws ecr create-repository --repository-name onyx
+          aws ecr describe-repositories --repository-names onyx-model-server || aws ecr create-repository --repository-name onyx-model-server
+          aws ecr describe-repositories --repository-names minio || aws ecr create-repository --repository-name minio
+          aws ecr describe-repositories --repository-names nginx || aws ecr create-repository --repository-name nginx
+          aws ecr describe-repositories --repository-names postgresql || aws ecr create-repository --repository-name postgresql
+          aws ecr describe-repositories --repository-names redis || aws ecr create-repository --repository-name redis
+          aws ecr describe-repositories --repository-names vespa || aws ecr create-repository --repository-name vespa
+
+          # Note: We don't need to create a separate repository for Helm charts
+          # as they will be stored in the 'onyx' repository alongside the images
+
       - name: Build and push Onyx backend image
         uses: docker/build-push-action@v5
         with:
@@ -140,14 +154,14 @@ jobs:
           echo "Directory contents before packaging:"
           ls -la
 
-          # Package Onyx Stack chart
-          echo "Packaging Onyx Stack chart..."
+          # Package Onyx chart
+          echo "Packaging Onyx chart..."
           helm dependency update deployment/helm/charts/onyx
           helm package deployment/helm/charts/onyx
           
-          # Verify Onyx Stack chart was created
-          if [ ! -f onyx-stack-*.tgz ]; then
-            echo "Error: Onyx Stack chart package was not created"
+          # Verify Onyx chart was created
+          if [ ! -f onyx-*.tgz ]; then
+            echo "Error: Onyx chart package was not created"
             exit 1
           fi
 
@@ -156,22 +170,18 @@ jobs:
 
       - name: Push Helm Charts to ECR
         run: |
-          # Create ECR repository for Onyx Stack chart if it doesn't exist
-          aws ecr describe-repositories --repository-names onyx-stack || \
-            aws ecr create-repository --repository-name onyx-stack
-
           # Login to ECR
           aws ecr get-login-password --region ${{ env.AWS_REGION }} | \
             helm registry login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
 
-          # Push Onyx Stack chart
-          echo "Pushing Onyx Stack chart..."
-          ONYX_CHART=$(ls onyx-stack-[0-9]*.tgz 2>/dev/null || true)
+          # Push Onyx chart
+          echo "Pushing Onyx chart..."
+          ONYX_CHART=$(ls onyx-[0-9]*.tgz 2>/dev/null || true)
           if [ -z "$ONYX_CHART" ]; then
-            echo "Error: Onyx Stack chart package not found in root directory"
+            echo "Error: Onyx chart package not found in root directory"
             echo "Current directory contents:"
             ls -la
             exit 1
           fi
           echo "Found chart: $ONYX_CHART"
-          helm push "$ONYX_CHART" "oci://${{ env.ECR_REGISTRY }}"
+          helm push "$ONYX_CHART" "oci://${{ env.ECR_REGISTRY }}/onyx"
