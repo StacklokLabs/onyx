@@ -120,26 +120,30 @@ jobs:
       # Pull and push subchart images
       - name: Pull and push MinIO image
         run: |
-          docker pull bitnami/minio:${{ steps.versions.outputs.minio_version }}
-          docker tag bitnami/minio:${{ steps.versions.outputs.minio_version }} ${{ env.ECR_REGISTRY }}/minio:${{ steps.versions.outputs.minio_version }}
+          MINIO_IMAGE_VERSION=$(yq -r '.minio.image.tag // ""' deployment/helm/charts/onyx/stacklok_values.yaml)
+          docker pull bitnami/minio:${MINIO_IMAGE_VERSION}
+          docker tag bitnami/minio:${MINIO_IMAGE_VERSION} ${{ env.ECR_REGISTRY }}/minio:${{ steps.versions.outputs.minio_version }}
           docker push ${{ env.ECR_REGISTRY }}/minio:${{ steps.versions.outputs.minio_version }}
 
       - name: Pull and push NGINX image
         run: |
-          docker pull bitnami/nginx-ingress-controller:${{ steps.versions.outputs.nginx_version }}
-          docker tag bitnami/nginx-ingress-controller:${{ steps.versions.outputs.nginx_version }} ${{ env.ECR_REGISTRY }}/nginx:${{ steps.versions.outputs.nginx_version }}
+          NGINX_IMAGE_VERSION=$(yq -r '.nginx.image.tag // ""' deployment/helm/charts/onyx/stacklok_values.yaml)
+          docker pull bitnami/nginx-ingress-controller:${NGINX_IMAGE_VERSION}
+          docker tag bitnami/nginx-ingress-controller:${NGINX_IMAGE_VERSION} ${{ env.ECR_REGISTRY }}/nginx:${{ steps.versions.outputs.nginx_version }}
           docker push ${{ env.ECR_REGISTRY }}/nginx:${{ steps.versions.outputs.nginx_version }}
 
       - name: Pull and push PostgreSQL image
         run: |
-          docker pull bitnami/postgresql:${{ steps.versions.outputs.postgresql_version }}
-          docker tag bitnami/postgresql:${{ steps.versions.outputs.postgresql_version }} ${{ env.ECR_REGISTRY }}/postgresql:${{ steps.versions.outputs.postgresql_version }}
+          POSTGRESQL_IMAGE_VERSION=$(yq -r '.postgresql.image.tag // ""' deployment/helm/charts/onyx/stacklok_values.yaml)
+          docker pull bitnami/postgresql:${POSTGRESQL_IMAGE_VERSION}
+          docker tag bitnami/postgresql:${POSTGRESQL_IMAGE_VERSION} ${{ env.ECR_REGISTRY }}/postgresql:${{ steps.versions.outputs.postgresql_version }}
           docker push ${{ env.ECR_REGISTRY }}/postgresql:${{ steps.versions.outputs.postgresql_version }}
 
       - name: Pull and push Redis image
         run: |
-          docker pull bitnami/redis:${{ steps.versions.outputs.redis_version }}
-          docker tag bitnami/redis:${{ steps.versions.outputs.redis_version }} ${{ env.ECR_REGISTRY }}/redis:${{ steps.versions.outputs.redis_version }}
+          REDIS_IMAGE_VERSION=$(yq -r '.redis.image.tag // ""' deployment/helm/charts/onyx/stacklok_values.yaml)
+          docker pull bitnami/redis:${REDIS_IMAGE_VERSION}
+          docker tag bitnami/redis:${REDIS_IMAGE_VERSION} ${{ env.ECR_REGISTRY }}/redis:${{ steps.versions.outputs.redis_version }}
           docker push ${{ env.ECR_REGISTRY }}/redis:${{ steps.versions.outputs.redis_version }}
 
       - name: Pull and push Vespa image
