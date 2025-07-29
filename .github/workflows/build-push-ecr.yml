@@ -85,85 +85,85 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Create ECR repositories
-        run: |
-          # Create repositories if they don't exist
-          aws ecr describe-repositories --repository-names onyx-stack || aws ecr create-repository --repository-name onyx-stack
-          aws ecr describe-repositories --repository-names onyx || aws ecr create-repository --repository-name onyx
-          aws ecr describe-repositories --repository-names onyx-model-server || aws ecr create-repository --repository-name onyx-model-server
-          aws ecr describe-repositories --repository-names minio || aws ecr create-repository --repository-name minio
-          aws ecr describe-repositories --repository-names nginx || aws ecr create-repository --repository-name nginx
-          aws ecr describe-repositories --repository-names postgresql || aws ecr create-repository --repository-name postgresql
-          aws ecr describe-repositories --repository-names redis || aws ecr create-repository --repository-name redis
-          aws ecr describe-repositories --repository-names vespa || aws ecr create-repository --repository-name vespa
+      # - name: Create ECR repositories
+      #   run: |
+      #     # Create repositories if they don't exist
+      #     aws ecr describe-repositories --repository-names onyx-stack || aws ecr create-repository --repository-name onyx-stack
+      #     aws ecr describe-repositories --repository-names onyx || aws ecr create-repository --repository-name onyx
+      #     aws ecr describe-repositories --repository-names onyx-model-server || aws ecr create-repository --repository-name onyx-model-server
+      #     aws ecr describe-repositories --repository-names minio || aws ecr create-repository --repository-name minio
+      #     aws ecr describe-repositories --repository-names nginx || aws ecr create-repository --repository-name nginx
+      #     aws ecr describe-repositories --repository-names postgresql || aws ecr create-repository --repository-name postgresql
+      #     aws ecr describe-repositories --repository-names redis || aws ecr create-repository --repository-name redis
+      #     aws ecr describe-repositories --repository-names vespa || aws ecr create-repository --repository-name vespa
 
-          # Note: We don't need to create a separate repository for Helm charts
-          # as they will be stored in the 'onyx' repository alongside the images
+      #     # Note: We don't need to create a separate repository for Helm charts
+      #     # as they will be stored in the 'onyx' repository alongside the images
 
-      - name: Build and push Onyx backend image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          file: ./backend/Dockerfile
-          push: true
-          tags: >-
-            ${{ env.ECR_REGISTRY }}/onyx:${{ steps.versions.outputs.version }}
+      # - name: Build and push Onyx backend image
+      #   uses: docker/build-push-action@v5
+      #   with:
+      #     context: ./backend
+      #     file: ./backend/Dockerfile
+      #     push: true
+      #     tags: >-
+      #       ${{ env.ECR_REGISTRY }}/onyx:${{ steps.versions.outputs.version }}
 
-      - name: Build and push Onyx model server image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          file: ./backend/Dockerfile.model_server
-          push: true
-          tags: >-
-            ${{ env.ECR_REGISTRY }}/onyx-model-server:${{ steps.versions.outputs.version }}
+      # - name: Build and push Onyx model server image
+      #   uses: docker/build-push-action@v5
+      #   with:
+      #     context: ./backend
+      #     file: ./backend/Dockerfile.model_server
+      #     push: true
+      #     tags: >-
+      #       ${{ env.ECR_REGISTRY }}/onyx-model-server:${{ steps.versions.outputs.version }}
 
-      # Pull and push subchart images
-      - name: Pull and push MinIO image
-        run: |
-          MINIO_IMAGE_VERSION=$(yq -r '.minio.image.tag // ""' deployment/helm/charts/onyx/values.yaml)
-          if [ -z "$MINIO_IMAGE_VERSION" ]; then
-            MINIO_IMAGE_VERSION=$(yq -r '.minio.image.tag // "latest"' deployment/helm/charts/onyx/stacklok_values.yaml)
-          fi
-          docker pull bitnami/minio:${MINIO_IMAGE_VERSION}
-          docker tag bitnami/minio:${MINIO_IMAGE_VERSION} ${{ env.ECR_REGISTRY }}/minio:${{ steps.versions.outputs.minio_version }}
-          docker push ${{ env.ECR_REGISTRY }}/minio:${{ steps.versions.outputs.minio_version }}
+      # # Pull and push subchart images
+      # - name: Pull and push MinIO image
+      #   run: |
+      #     MINIO_IMAGE_VERSION=$(yq -r '.minio.image.tag // ""' deployment/helm/charts/onyx/values.yaml)
+      #     if [ -z "$MINIO_IMAGE_VERSION" ]; then
+      #       MINIO_IMAGE_VERSION=$(yq -r '.minio.image.tag // "latest"' deployment/helm/charts/onyx/stacklok_values.yaml)
+      #     fi
+      #     docker pull bitnami/minio:${MINIO_IMAGE_VERSION}
+      #     docker tag bitnami/minio:${MINIO_IMAGE_VERSION} ${{ env.ECR_REGISTRY }}/minio:${{ steps.versions.outputs.minio_version }}
+      #     docker push ${{ env.ECR_REGISTRY }}/minio:${{ steps.versions.outputs.minio_version }}
 
-      - name: Pull and push NGINX image
-        run: |
-          NGINX_IMAGE_VERSION=$(yq -r '.nginx.image.tag // ""' deployment/helm/charts/onyx/values.yaml)
-          if [ -z "$NGINX_IMAGE_VERSION" ]; then
-            NGINX_IMAGE_VERSION=$(yq -r '.nginx.image.tag // "latest"' deployment/helm/charts/onyx/stacklok_values.yaml)
-          fi
-          docker pull bitnami/nginx-ingress-controller:${NGINX_IMAGE_VERSION}
-          docker tag bitnami/nginx-ingress-controller:${NGINX_IMAGE_VERSION} ${{ env.ECR_REGISTRY }}/nginx:${{ steps.versions.outputs.nginx_version }}
-          docker push ${{ env.ECR_REGISTRY }}/nginx:${{ steps.versions.outputs.nginx_version }}
+      # - name: Pull and push NGINX image
+      #   run: |
+      #     NGINX_IMAGE_VERSION=$(yq -r '.nginx.image.tag // ""' deployment/helm/charts/onyx/values.yaml)
+      #     if [ -z "$NGINX_IMAGE_VERSION" ]; then
+      #       NGINX_IMAGE_VERSION=$(yq -r '.nginx.image.tag // "latest"' deployment/helm/charts/onyx/stacklok_values.yaml)
+      #     fi
+      #     docker pull bitnami/nginx-ingress-controller:${NGINX_IMAGE_VERSION}
+      #     docker tag bitnami/nginx-ingress-controller:${NGINX_IMAGE_VERSION} ${{ env.ECR_REGISTRY }}/nginx:${{ steps.versions.outputs.nginx_version }}
+      #     docker push ${{ env.ECR_REGISTRY }}/nginx:${{ steps.versions.outputs.nginx_version }}
 
-      - name: Pull and push PostgreSQL image
-        run: |
-          POSTGRESQL_IMAGE_VERSION=$(yq -r '.postgresql.image.tag // ""' deployment/helm/charts/onyx/values.yaml)
-          if [ -z "$POSTGRESQL_IMAGE_VERSION" ]; then
-            POSTGRESQL_IMAGE_VERSION=$(yq -r '.postgresql.image.tag // "latest"' deployment/helm/charts/onyx/stacklok_values.yaml)
-          fi
-          docker pull bitnami/postgresql:${POSTGRESQL_IMAGE_VERSION}
-          docker tag bitnami/postgresql:${POSTGRESQL_IMAGE_VERSION} ${{ env.ECR_REGISTRY }}/postgresql:${{ steps.versions.outputs.postgresql_version }}
-          docker push ${{ env.ECR_REGISTRY }}/postgresql:${{ steps.versions.outputs.postgresql_version }}
+      # - name: Pull and push PostgreSQL image
+      #   run: |
+      #     POSTGRESQL_IMAGE_VERSION=$(yq -r '.postgresql.image.tag // ""' deployment/helm/charts/onyx/values.yaml)
+      #     if [ -z "$POSTGRESQL_IMAGE_VERSION" ]; then
+      #       POSTGRESQL_IMAGE_VERSION=$(yq -r '.postgresql.image.tag // "latest"' deployment/helm/charts/onyx/stacklok_values.yaml)
+      #     fi
+      #     docker pull bitnami/postgresql:${POSTGRESQL_IMAGE_VERSION}
+      #     docker tag bitnami/postgresql:${POSTGRESQL_IMAGE_VERSION} ${{ env.ECR_REGISTRY }}/postgresql:${{ steps.versions.outputs.postgresql_version }}
+      #     docker push ${{ env.ECR_REGISTRY }}/postgresql:${{ steps.versions.outputs.postgresql_version }}
 
-      - name: Pull and push Redis image
-        run: |
-          REDIS_IMAGE_VERSION=$(yq -r '.redis.image.tag // ""' deployment/helm/charts/onyx/values.yaml)
-          if [ -z "$REDIS_IMAGE_VERSION" ]; then
-            REDIS_IMAGE_VERSION=$(yq -r '.redis.image.tag // "latest"' deployment/helm/charts/onyx/stacklok_values.yaml)
-          fi
-          docker pull bitnami/redis:${REDIS_IMAGE_VERSION}
-          docker tag bitnami/redis:${REDIS_IMAGE_VERSION} ${{ env.ECR_REGISTRY }}/redis:${{ steps.versions.outputs.redis_version }}
-          docker push ${{ env.ECR_REGISTRY }}/redis:${{ steps.versions.outputs.redis_version }}
+      # - name: Pull and push Redis image
+      #   run: |
+      #     REDIS_IMAGE_VERSION=$(yq -r '.redis.image.tag // ""' deployment/helm/charts/onyx/values.yaml)
+      #     if [ -z "$REDIS_IMAGE_VERSION" ]; then
+      #       REDIS_IMAGE_VERSION=$(yq -r '.redis.image.tag // "latest"' deployment/helm/charts/onyx/stacklok_values.yaml)
+      #     fi
+      #     docker pull bitnami/redis:${REDIS_IMAGE_VERSION}
+      #     docker tag bitnami/redis:${REDIS_IMAGE_VERSION} ${{ env.ECR_REGISTRY }}/redis:${{ steps.versions.outputs.redis_version }}
+      #     docker push ${{ env.ECR_REGISTRY }}/redis:${{ steps.versions.outputs.redis_version }}
 
-      - name: Pull and push Vespa image
-        run: |
-          docker pull vespaengine/vespa:${{ steps.versions.outputs.vespa_version }}
-          docker tag vespaengine/vespa:${{ steps.versions.outputs.vespa_version }} ${{ env.ECR_REGISTRY }}/vespa:${{ steps.versions.outputs.vespa_version }}
-          docker push ${{ env.ECR_REGISTRY }}/vespa:${{ steps.versions.outputs.vespa_version }}
+      # - name: Pull and push Vespa image
+      #   run: |
+      #     docker pull vespaengine/vespa:${{ steps.versions.outputs.vespa_version }}
+      #     docker tag vespaengine/vespa:${{ steps.versions.outputs.vespa_version }} ${{ env.ECR_REGISTRY }}/vespa:${{ steps.versions.outputs.vespa_version }}
+      #     docker push ${{ env.ECR_REGISTRY }}/vespa:${{ steps.versions.outputs.vespa_version }}
 
       - name: Set up Helm
         uses: azure/setup-helm@v3
@@ -207,4 +207,4 @@ jobs:
             exit 1
           fi
           echo "Found chart: $ONYX_CHART"
-          helm push "$ONYX_CHART" "oci://${{ env.ECR_REGISTRY }}/onyx"
+          helm push "$ONYX_CHART" "oci://${{ env.ECR_REGISTRY }}"
