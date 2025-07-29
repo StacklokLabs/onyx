@@ -114,8 +114,8 @@ jobs:
       # Pull and push subchart images
       - name: Pull and push MinIO image
         run: |
-          docker pull quay.io/minio/minio:${{ steps.versions.outputs.minio_version }}
-          docker tag quay.io/minio/minio:${{ steps.versions.outputs.minio_version }} ${{ env.ECR_REGISTRY }}/minio:${{ steps.versions.outputs.minio_version }}
+          docker pull bitnami/minio:${{ steps.versions.outputs.minio_version }}
+          docker tag bitnami/minio:${{ steps.versions.outputs.minio_version }} ${{ env.ECR_REGISTRY }}/minio:${{ steps.versions.outputs.minio_version }}
           docker push ${{ env.ECR_REGISTRY }}/minio:${{ steps.versions.outputs.minio_version }}
 
       - name: Pull and push NGINX image
