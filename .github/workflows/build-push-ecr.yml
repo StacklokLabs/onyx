@@ -1,12 +1,12 @@
 name: Build and Push to ECR
 
 'on':
-  push:
-    branches: [stacklok-main]
-    paths:
-      - 'backend/Dockerfile'
-      - 'backend/Dockerfile.model_server'
-      - 'deployment/helm/charts/onyx/**'
+  # push:
+  #   branches: [stacklok-main]
+  #   paths:
+  #     - 'backend/Dockerfile'
+  #     - 'backend/Dockerfile.model_server'
+  #     - 'deployment/helm/charts/onyx/**'
   workflow_dispatch:
 
 env:
