@@ -92,6 +92,24 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Free disk space
+        run: |
+          # Display initial disk space
+          df -h
+          
+          # Remove unnecessary large directories
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          
+          # Clean Docker system
+          docker system prune -af
+          
+          # Display disk space after cleanup
+          df -h
+
       - name: Create ECR repositories
         run: |
           # Create repositories if they don't exist
@@ -116,6 +134,11 @@ jobs:
           platforms: linux/arm64,linux/amd64
           tags: >-
             ${{ env.ECR_REGISTRY }}/onyx:${{ steps.versions.outputs.version }}
+          build-args: |
+            BUILDKIT_STEP_LOG_MAX_SIZE=10485760
+            DOCKER_BUILDKIT=1
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Build and push Onyx model server image
         uses: docker/build-push-action@v5
@@ -126,6 +149,11 @@ jobs:
           platforms: linux/arm64,linux/amd64
           tags: >-
             ${{ env.ECR_REGISTRY }}/onyx-model-server:${{ steps.versions.outputs.version }}
+          build-args: |
+            BUILDKIT_STEP_LOG_MAX_SIZE=10485760
+            DOCKER_BUILDKIT=1
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       # Pull and push subchart images
       - name: Pull and push MinIO image

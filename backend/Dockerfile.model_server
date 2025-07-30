@@ -24,23 +24,29 @@ RUN apt-get remove -y --allow-remove-essential perl-base && \
     apt-get autoremove -y
 
 # Pre-downloading models for setups with limited egress
-# Download tokenizers, distilbert for the Onyx model
-# Download model weights
-# Run Nomic to pull in the custom architecture and have it cached locally
-RUN python -c "from transformers import AutoTokenizer; \
-AutoTokenizer.from_pretrained('distilbert-base-uncased'); \
-AutoTokenizer.from_pretrained('mixedbread-ai/mxbai-rerank-xsmall-v1'); \
-from huggingface_hub import snapshot_download; \
-snapshot_download(repo_id='onyx-dot-app/hybrid-intent-token-classifier'); \
-snapshot_download(repo_id='onyx-dot-app/information-content-model'); \
-snapshot_download('nomic-ai/nomic-embed-text-v1'); \
-snapshot_download('mixedbread-ai/mxbai-rerank-xsmall-v1'); \
-from sentence_transformers import SentenceTransformer; \
-SentenceTransformer(model_name_or_path='nomic-ai/nomic-embed-text-v1', trust_remote_code=True);"
+# Set environment variable to control HuggingFace cache location
+ENV HF_HOME=/root/.cache/huggingface_downloads
 
-# In case the user has volumes mounted to /root/.cache/huggingface that they've downloaded while
-# running Onyx, don't overwrite it with the built in cache folder
-RUN mv /root/.cache/huggingface /root/.cache/temp_huggingface
+# Download and process models one at a time with cleanup
+RUN set -ex; \
+    mkdir -p /root/.cache/huggingface_final; \
+    for MODEL in \
+        "distilbert-base-uncased" \
+        "mixedbread-ai/mxbai-rerank-xsmall-v1" \
+        "onyx-dot-app/hybrid-intent-token-classifier" \
+        "onyx-dot-app/information-content-model" \
+        "nomic-ai/nomic-embed-text-v1"; \
+    do \
+        echo "Processing model: $MODEL"; \
+        python -c "from huggingface_hub import snapshot_download; snapshot_download('$MODEL', local_dir='/root/.cache/huggingface_final/$MODEL')"; \
+        rm -rf /root/.cache/huggingface_downloads/*; \
+    done; \
+    # Initialize SentenceTransformer separately
+    python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer(model_name_or_path='nomic-ai/nomic-embed-text-v1', trust_remote_code=True)"; \
+    # Move final cache to temp location
+    mv /root/.cache/huggingface_final /root/.cache/temp_huggingface; \
+    # Cleanup
+    rm -rf /root/.cache/huggingface_downloads
 
 WORKDIR /app
 
