@@ -1,0 +1,129 @@
+name: Build and Push Local Images to ECR
+
+'on':
+  push:
+    branches: [stacklok-main, main]
+    paths:
+      - 'backend/Dockerfile'
+      - 'backend/Dockerfile.model_server'
+      - '.github/workflows/build-push-local-images.yml'
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: 781189302813.dkr.ecr.us-east-1.amazonaws.com
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-and-push-local-images:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod a+x /usr/local/bin/yq
+
+      - name: Set versions
+        id: versions
+        run: |
+          echo "Searching for version in values.yaml..."
+          cat deployment/helm/charts/onyx/values.yaml
+          echo "Extracting version..."
+          VERSION=$(yq -r '.image.tag // ""' deployment/helm/charts/onyx/values.yaml)
+          echo "Extracted version: '$VERSION'"
+          if [ -z "$VERSION" ]; then
+            echo "No version found, using default"
+            VERSION="0.1.0"
+          else
+            # Remove 'v' prefix if present
+            VERSION=${VERSION#v}
+            echo "Version after removing potential 'v' prefix: $VERSION"
+          fi
+          # Validate version format
+          if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Invalid version format: $VERSION"
+            echo "Using default version"
+            VERSION="0.1.0"
+          fi
+          echo "Final version: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::781189302813:role/github-actions-research
+          aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Free disk space
+        run: |
+          # Display initial disk space
+          df -h
+          
+          # Remove unnecessary large directories
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          
+          # Clean Docker system
+          docker system prune -af
+          
+          # Display disk space after cleanup
+          df -h
+
+      - name: Create ECR repositories for local images
+        run: |
+          # Create repositories if they don't exist
+          aws ecr describe-repositories --repository-names onyx-stack || aws ecr create-repository --repository-name onyx-stack
+          aws ecr describe-repositories --repository-names onyx-backend || aws ecr create-repository --repository-name onyx-backend
+          aws ecr describe-repositories --repository-names onyx-model-server || aws ecr create-repository --repository-name onyx-model-server
+
+      - name: Build and push Onyx backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          platforms: linux/arm64,linux/amd64
+          tags: >-
+            ${{ env.ECR_REGISTRY }}/onyx-backend:${{ steps.versions.outputs.version }},
+            ${{ env.ECR_REGISTRY }}/onyx-backend:latest
+          build-args: |
+            BUILDKIT_STEP_LOG_MAX_SIZE=10485760
+            DOCKER_BUILDKIT=1
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Onyx model server image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile.model_server
+          push: true
+          platforms: linux/arm64,linux/amd64
+          tags: >-
+            ${{ env.ECR_REGISTRY }}/onyx-model-server:${{ steps.versions.outputs.version }},
+            ${{ env.ECR_REGISTRY }}/onyx-model-server:latest
+          build-args: |
+            BUILDKIT_STEP_LOG_MAX_SIZE=10485760
+            DOCKER_BUILDKIT=1
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

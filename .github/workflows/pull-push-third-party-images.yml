@@ -1,13 +1,13 @@
-name: Build and Push to ECR
+name: Pull and Push Third Party Images to ECR
 
 'on':
   push:
     branches: [stacklok-main, main]
     paths:
-      - 'backend/Dockerfile'
-      - 'backend/Dockerfile.model_server'
-      - 'deployment/helm/charts/onyx/**'
-      - '.github/workflows/**'
+      - 'deployment/helm/charts/onyx/Chart.yaml'
+      - 'deployment/helm/charts/onyx/values.yaml'
+      - 'deployment/helm/charts/onyx/stacklok_values.yaml'
+      - '.github/workflows/pull-push-third-party-images.yml'
   workflow_dispatch:
 
 env:
@@ -19,7 +19,7 @@ permissions:
   id-token: write
 
 jobs:
-  build-and-push:
+  pull-and-push-third-party-images:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -30,37 +30,9 @@ jobs:
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod a+x /usr/local/bin/yq
 
-      - name: Add Helm repositories
-        run: |
-          helm repo add bitnami https://charts.bitnami.com/bitnami
-          helm repo add vespa https://onyx-dot-app.github.io/vespa-helm-charts
-          helm repo update
-
-      - name: Set versions
+      - name: Set subchart versions
         id: versions
         run: |
-          echo "Searching for version in values.yaml..."
-          cat deployment/helm/charts/onyx/values.yaml
-          echo "Extracting version..."
-          VERSION=$(yq -r '.image.tag // ""' deployment/helm/charts/onyx/values.yaml)
-          echo "Extracted version: '$VERSION'"
-          if [ -z "$VERSION" ]; then
-            echo "No version found, using default"
-            VERSION="0.1.0"
-          else
-            # Remove 'v' prefix if present
-            VERSION=${VERSION#v}
-            echo "Version after removing potential 'v' prefix: $VERSION"
-          fi
-          # Validate version format
-          if [[ ! $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Error: Invalid version format: $VERSION"
-            echo "Using default version"
-            VERSION="0.1.0"
-          fi
-          echo "Final version: $VERSION"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
           # Extract subchart versions
           echo "Extracting subchart versions from Chart.yaml..."
           MINIO_VERSION=$(yq -r '.dependencies[] | select(.name == "minio") | .version' deployment/helm/charts/onyx/Chart.yaml)
@@ -110,52 +82,15 @@ jobs:
           # Display disk space after cleanup
           df -h
 
-      - name: Create ECR repositories
+      - name: Create ECR repositories for third party images
         run: |
           # Create repositories if they don't exist
-          aws ecr describe-repositories --repository-names onyx-stack || aws ecr create-repository --repository-name onyx-stack
-          aws ecr describe-repositories --repository-names onyx || aws ecr create-repository --repository-name onyx
-          aws ecr describe-repositories --repository-names onyx-model-server || aws ecr create-repository --repository-name onyx-model-server
           aws ecr describe-repositories --repository-names minio || aws ecr create-repository --repository-name minio
           aws ecr describe-repositories --repository-names nginx || aws ecr create-repository --repository-name nginx
           aws ecr describe-repositories --repository-names postgresql || aws ecr create-repository --repository-name postgresql
           aws ecr describe-repositories --repository-names redis || aws ecr create-repository --repository-name redis
           aws ecr describe-repositories --repository-names vespa || aws ecr create-repository --repository-name vespa
 
-          # Note: We don't need to create a separate repository for Helm charts
-          # as they will be stored in the 'onyx' repository alongside the images
-
-      - name: Build and push Onyx backend image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          file: ./backend/Dockerfile
-          push: true
-          platforms: linux/arm64,linux/amd64
-          tags: >-
-            ${{ env.ECR_REGISTRY }}/onyx:${{ steps.versions.outputs.version }}
-          build-args: |
-            BUILDKIT_STEP_LOG_MAX_SIZE=10485760
-            DOCKER_BUILDKIT=1
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push Onyx model server image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          file: ./backend/Dockerfile.model_server
-          push: true
-          platforms: linux/arm64,linux/amd64
-          tags: >-
-            ${{ env.ECR_REGISTRY }}/onyx-model-server:${{ steps.versions.outputs.version }}
-          build-args: |
-            BUILDKIT_STEP_LOG_MAX_SIZE=10485760
-            DOCKER_BUILDKIT=1
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      # Pull and push subchart images
       - name: Pull and push MinIO image
         run: |
           MINIO_IMAGE_VERSION=$(yq -r '.minio.image.tag // ""' deployment/helm/charts/onyx/values.yaml)
@@ -236,47 +171,3 @@ jobs:
             ${{ env.ECR_REGISTRY }}/vespa:${{ steps.versions.outputs.vespa_version }}-arm64 \
             ${{ env.ECR_REGISTRY }}/vespa:${{ steps.versions.outputs.vespa_version }}-amd64
           docker manifest push ${{ env.ECR_REGISTRY }}/vespa:${{ steps.versions.outputs.vespa_version }}
-
-      - name: Set up Helm
-        uses: azure/setup-helm@v3
-        with:
-          version: 'v3.12.3'
-
-      - name: Package Helm Charts
-        run: |
-          # Debug: Show current directory
-          pwd
-          echo "Directory contents before packaging:"
-          ls -la
-
-          # Package Onyx chart
-          echo "Packaging Onyx chart..."
-          helm dependency update deployment/helm/charts/onyx
-          helm package deployment/helm/charts/onyx
-          
-          # Verify Onyx chart was created
-          if [ ! -f onyx-stack-*.tgz ]; then
-            echo "Error: Onyx chart package was not created"
-            exit 1
-          fi
-
-          echo "Directory contents after packaging:"
-          ls -la *.tgz
-
-      - name: Push Helm Charts to ECR
-        run: |
-          # Login to ECR
-          aws ecr get-login-password --region ${{ env.AWS_REGION }} | \
-            helm registry login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
-
-          # Push Onyx chart
-          echo "Pushing Onyx chart..."
-          ONYX_CHART=$(ls onyx-stack-*.tgz 2>/dev/null || true)
-          if [ -z "$ONYX_CHART" ]; then
-            echo "Error: Onyx chart package not found in root directory"
-            echo "Current directory contents:"
-            ls -la
-            exit 1
-          fi
-          echo "Found chart: $ONYX_CHART"
-          helm push "$ONYX_CHART" "oci://${{ env.ECR_REGISTRY }}"
