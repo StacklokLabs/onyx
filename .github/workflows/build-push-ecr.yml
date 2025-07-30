@@ -113,7 +113,7 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/arm64,linux/amd64
           tags: >-
             ${{ env.ECR_REGISTRY }}/onyx:${{ steps.versions.outputs.version }}
 
@@ -123,7 +123,7 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile.model_server
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/arm64,linux/amd64
           tags: >-
             ${{ env.ECR_REGISTRY }}/onyx-model-server:${{ steps.versions.outputs.version }}
 
@@ -141,8 +141,8 @@ jobs:
           docker push ${{ env.ECR_REGISTRY }}/minio:${{ steps.versions.outputs.minio_version }}-amd64
           docker push ${{ env.ECR_REGISTRY }}/minio:${{ steps.versions.outputs.minio_version }}-arm64
           docker manifest create ${{ env.ECR_REGISTRY }}/minio:${{ steps.versions.outputs.minio_version }} \
-            ${{ env.ECR_REGISTRY }}/minio:${{ steps.versions.outputs.minio_version }}-amd64 \
-            ${{ env.ECR_REGISTRY }}/minio:${{ steps.versions.outputs.minio_version }}-arm64
+            ${{ env.ECR_REGISTRY }}/minio:${{ steps.versions.outputs.minio_version }}-arm64 \
+            ${{ env.ECR_REGISTRY }}/minio:${{ steps.versions.outputs.minio_version }}-amd64
           docker manifest push ${{ env.ECR_REGISTRY }}/minio:${{ steps.versions.outputs.minio_version }}
 
       - name: Pull and push NGINX image
@@ -158,8 +158,8 @@ jobs:
           docker push ${{ env.ECR_REGISTRY }}/nginx:${{ steps.versions.outputs.nginx_version }}-amd64
           docker push ${{ env.ECR_REGISTRY }}/nginx:${{ steps.versions.outputs.nginx_version }}-arm64
           docker manifest create ${{ env.ECR_REGISTRY }}/nginx:${{ steps.versions.outputs.nginx_version }} \
-            ${{ env.ECR_REGISTRY }}/nginx:${{ steps.versions.outputs.nginx_version }}-amd64 \
-            ${{ env.ECR_REGISTRY }}/nginx:${{ steps.versions.outputs.nginx_version }}-arm64
+            ${{ env.ECR_REGISTRY }}/nginx:${{ steps.versions.outputs.nginx_version }}-arm64 \
+            ${{ env.ECR_REGISTRY }}/nginx:${{ steps.versions.outputs.nginx_version }}-amd64
           docker manifest push ${{ env.ECR_REGISTRY }}/nginx:${{ steps.versions.outputs.nginx_version }}
 
       - name: Pull and push PostgreSQL image
@@ -175,8 +175,8 @@ jobs:
           docker push ${{ env.ECR_REGISTRY }}/postgresql:${{ steps.versions.outputs.postgresql_version }}-amd64
           docker push ${{ env.ECR_REGISTRY }}/postgresql:${{ steps.versions.outputs.postgresql_version }}-arm64
           docker manifest create ${{ env.ECR_REGISTRY }}/postgresql:${{ steps.versions.outputs.postgresql_version }} \
-            ${{ env.ECR_REGISTRY }}/postgresql:${{ steps.versions.outputs.postgresql_version }}-amd64 \
-            ${{ env.ECR_REGISTRY }}/postgresql:${{ steps.versions.outputs.postgresql_version }}-arm64
+            ${{ env.ECR_REGISTRY }}/postgresql:${{ steps.versions.outputs.postgresql_version }}-arm64 \
+            ${{ env.ECR_REGISTRY }}/postgresql:${{ steps.versions.outputs.postgresql_version }}-amd64
           docker manifest push ${{ env.ECR_REGISTRY }}/postgresql:${{ steps.versions.outputs.postgresql_version }}
 
       - name: Pull and push Redis image
@@ -192,8 +192,8 @@ jobs:
           docker push ${{ env.ECR_REGISTRY }}/redis:${{ steps.versions.outputs.redis_version }}-amd64
           docker push ${{ env.ECR_REGISTRY }}/redis:${{ steps.versions.outputs.redis_version }}-arm64
           docker manifest create ${{ env.ECR_REGISTRY }}/redis:${{ steps.versions.outputs.redis_version }} \
-            ${{ env.ECR_REGISTRY }}/redis:${{ steps.versions.outputs.redis_version }}-amd64 \
-            ${{ env.ECR_REGISTRY }}/redis:${{ steps.versions.outputs.redis_version }}-arm64
+            ${{ env.ECR_REGISTRY }}/redis:${{ steps.versions.outputs.redis_version }}-arm64 \
+            ${{ env.ECR_REGISTRY }}/redis:${{ steps.versions.outputs.redis_version }}-amd64
           docker manifest push ${{ env.ECR_REGISTRY }}/redis:${{ steps.versions.outputs.redis_version }}
 
       - name: Pull and push Vespa image
@@ -205,8 +205,8 @@ jobs:
           docker push ${{ env.ECR_REGISTRY }}/vespa:${{ steps.versions.outputs.vespa_version }}-amd64
           docker push ${{ env.ECR_REGISTRY }}/vespa:${{ steps.versions.outputs.vespa_version }}-arm64
           docker manifest create ${{ env.ECR_REGISTRY }}/vespa:${{ steps.versions.outputs.vespa_version }} \
-            ${{ env.ECR_REGISTRY }}/vespa:${{ steps.versions.outputs.vespa_version }}-amd64 \
-            ${{ env.ECR_REGISTRY }}/vespa:${{ steps.versions.outputs.vespa_version }}-arm64
+            ${{ env.ECR_REGISTRY }}/vespa:${{ steps.versions.outputs.vespa_version }}-arm64 \
+            ${{ env.ECR_REGISTRY }}/vespa:${{ steps.versions.outputs.vespa_version }}-amd64
           docker manifest push ${{ env.ECR_REGISTRY }}/vespa:${{ steps.versions.outputs.vespa_version }}
 
       - name: Set up Helm
