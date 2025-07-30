@@ -1,4 +1,4 @@
-name: Build and Push to ECR
+name: Build and Push Images to ECR
 
 'on':
   push:
@@ -6,8 +6,7 @@ name: Build and Push to ECR
     paths:
       - 'backend/Dockerfile'
       - 'backend/Dockerfile.model_server'
-      - 'deployment/helm/charts/onyx/**'
-      - '.github/workflows/**'
+      - '.github/workflows/build-push-images.yml'
   workflow_dispatch:
 
 env:
@@ -19,7 +18,7 @@ permissions:
   id-token: write
 
 jobs:
-  build-and-push:
+  build-and-push-images:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -29,12 +28,6 @@ jobs:
         run: |
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod a+x /usr/local/bin/yq
-
-      - name: Add Helm repositories
-        run: |
-          helm repo add bitnami https://charts.bitnami.com/bitnami
-          helm repo add vespa https://onyx-dot-app.github.io/vespa-helm-charts
-          helm repo update
 
       - name: Set versions
         id: versions
@@ -121,9 +114,6 @@ jobs:
           aws ecr describe-repositories --repository-names postgresql || aws ecr create-repository --repository-name postgresql
           aws ecr describe-repositories --repository-names redis || aws ecr create-repository --repository-name redis
           aws ecr describe-repositories --repository-names vespa || aws ecr create-repository --repository-name vespa
-
-          # Note: We don't need to create a separate repository for Helm charts
-          # as they will be stored in the 'onyx' repository alongside the images
 
       - name: Build and push Onyx backend image
         uses: docker/build-push-action@v5
@@ -236,47 +226,3 @@ jobs:
             ${{ env.ECR_REGISTRY }}/vespa:${{ steps.versions.outputs.vespa_version }}-arm64 \
             ${{ env.ECR_REGISTRY }}/vespa:${{ steps.versions.outputs.vespa_version }}-amd64
           docker manifest push ${{ env.ECR_REGISTRY }}/vespa:${{ steps.versions.outputs.vespa_version }}
-
-      - name: Set up Helm
-        uses: azure/setup-helm@v3
-        with:
-          version: 'v3.12.3'
-
-      - name: Package Helm Charts
-        run: |
-          # Debug: Show current directory
-          pwd
-          echo "Directory contents before packaging:"
-          ls -la
-
-          # Package Onyx chart
-          echo "Packaging Onyx chart..."
-          helm dependency update deployment/helm/charts/onyx
-          helm package deployment/helm/charts/onyx
-          
-          # Verify Onyx chart was created
-          if [ ! -f onyx-stack-*.tgz ]; then
-            echo "Error: Onyx chart package was not created"
-            exit 1
-          fi
-
-          echo "Directory contents after packaging:"
-          ls -la *.tgz
-
-      - name: Push Helm Charts to ECR
-        run: |
-          # Login to ECR
-          aws ecr get-login-password --region ${{ env.AWS_REGION }} | \
-            helm registry login --username AWS --password-stdin ${{ env.ECR_REGISTRY }}
-
-          # Push Onyx chart
-          echo "Pushing Onyx chart..."
-          ONYX_CHART=$(ls onyx-stack-*.tgz 2>/dev/null || true)
-          if [ -z "$ONYX_CHART" ]; then
-            echo "Error: Onyx chart package not found in root directory"
-            echo "Current directory contents:"
-            ls -la
-            exit 1
-          fi
-          echo "Found chart: $ONYX_CHART"
-          helm push "$ONYX_CHART" "oci://${{ env.ECR_REGISTRY }}"
