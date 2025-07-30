@@ -93,7 +93,7 @@ jobs:
         run: |
           # Create repositories if they don't exist
           aws ecr describe-repositories --repository-names onyx-stack || aws ecr create-repository --repository-name onyx-stack
-          aws ecr describe-repositories --repository-names onyx || aws ecr create-repository --repository-name onyx
+          aws ecr describe-repositories --repository-names onyx-backend || aws ecr create-repository --repository-name onyx-backend
           aws ecr describe-repositories --repository-names onyx-model-server || aws ecr create-repository --repository-name onyx-model-server
 
       - name: Build and push Onyx backend image
@@ -104,7 +104,8 @@ jobs:
           push: true
           platforms: linux/arm64,linux/amd64
           tags: >-
-            ${{ env.ECR_REGISTRY }}/onyx:${{ steps.versions.outputs.version }}
+            ${{ env.ECR_REGISTRY }}/onyx-backend:${{ steps.versions.outputs.version }},
+            ${{ env.ECR_REGISTRY }}/onyx-backend:latest
           build-args: |
             BUILDKIT_STEP_LOG_MAX_SIZE=10485760
             DOCKER_BUILDKIT=1
@@ -119,7 +120,8 @@ jobs:
           push: true
           platforms: linux/arm64,linux/amd64
           tags: >-
-            ${{ env.ECR_REGISTRY }}/onyx-model-server:${{ steps.versions.outputs.version }}
+            ${{ env.ECR_REGISTRY }}/onyx-model-server:${{ steps.versions.outputs.version }},
+            ${{ env.ECR_REGISTRY }}/onyx-model-server:latest
           build-args: |
             BUILDKIT_STEP_LOG_MAX_SIZE=10485760
             DOCKER_BUILDKIT=1
