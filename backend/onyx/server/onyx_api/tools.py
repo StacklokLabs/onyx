@@ -1,3 +1,4 @@
+from dataclasses import Field
 from datetime import datetime
 from fastapi import APIRouter
 from fastapi import Depends
@@ -33,6 +34,16 @@ class SearchToolRequest(BaseModel):
     query: str
     time_cutoff: datetime | None = None
     document_sources: list[DocumentSource] | None = None
+    limit: int = Field(
+        default=20,
+        ge=1,
+        le=50,
+        description=(
+            "Target Hits to retrieve per query. Onyx default is 50. "
+            "See backend/onyx/document_index/vespa/index.py::VespaIndex.hybrid_retrieval. "
+            "Guaranteed that at most this many results will be returned (most of the time fewer)."
+        )
+    )
 
 
 class FoundDocSearchTool(BaseModel):
@@ -64,7 +75,7 @@ def search_tool_endpoint(
     persona = get_persona_by_id(0, None, db_session)
 
     # Set up configurations
-    retrieval_options = RetrievalDetails()
+    retrieval_options = RetrievalDetails(limit=request.limit)
     prompt_config = PromptConfig.from_model(persona.prompts[0])
     pruning_config = DocumentPruningConfig()
     answer_style_config = AnswerStyleConfig(citation_config=CitationConfig())
