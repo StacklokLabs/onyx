@@ -25,7 +25,8 @@ schema {{ schema_name }} {
         }
         # Displayed in the UI as the main identifier for the doc
         field semantic_identifier type string {
-            indexing: summary | attribute
+            indexing: summary | index | attribute
+            index: enable-bm25
         }
         # Must have an additional field for whether to skip title embeddings
         # This information cannot be extracted from either the title field nor title embedding

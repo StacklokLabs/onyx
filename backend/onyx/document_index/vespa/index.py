@@ -68,6 +68,7 @@ from onyx.document_index.vespa_constants import DOCUMENT_ID_ENDPOINT
 from onyx.document_index.vespa_constants import DOCUMENT_SETS
 from onyx.document_index.vespa_constants import HIDDEN
 from onyx.document_index.vespa_constants import NUM_THREADS
+from onyx.document_index.vespa_constants import SEMANTIC_IDENTIFIER
 from onyx.document_index.vespa_constants import USER_FILE
 from onyx.document_index.vespa_constants import USER_FOLDER
 from onyx.document_index.vespa_constants import VESPA_APPLICATION_ENDPOINT
@@ -955,7 +956,8 @@ class VespaIndex(DocumentIndex):
             + f"(({{targetHits: {target_hits}}}nearestNeighbor(embeddings, query_embedding)) "
             + f"or ({{targetHits: {target_hits}}}nearestNeighbor(title_embedding, query_embedding)) "
             + 'or ({grammar: "weakAnd"}userInput(@query)) '
-            + f'or ({{defaultIndex: "{CONTENT_SUMMARY}"}}userInput(@query)))'
+            + f'or ({{defaultIndex: "{CONTENT_SUMMARY}"}}userInput(@query)) '
+            + f'or ({{defaultIndex: "{SEMANTIC_IDENTIFIER}"}}userInput(@query)))'
         )
 
         final_query = " ".join(final_keywords) if final_keywords else query
@@ -1003,7 +1005,8 @@ class VespaIndex(DocumentIndex):
             # `({defaultIndex: "content_summary"}userInput(@query))` section is
             # needed for highlighting while the N-gram highlighting is broken /
             # not working as desired
-            + f'or ({{defaultIndex: "{CONTENT_SUMMARY}"}}userInput(@query)))'
+            + f'or ({{defaultIndex: "{CONTENT_SUMMARY}"}}userInput(@query)) '
+            + f'or ({{defaultIndex: "{SEMANTIC_IDENTIFIER}"}}userInput(@query)))'
         )
 
         params: dict[str, str | int] = {
