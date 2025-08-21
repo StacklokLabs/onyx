@@ -1,8 +1,7 @@
-from dataclasses import Field
 from datetime import datetime
 from fastapi import APIRouter
 from fastapi import Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from onyx.auth.users import api_key_dep
@@ -52,6 +51,7 @@ class FoundDocSearchTool(BaseModel):
     content: str
     updated_at: datetime | None = None
     link: str | None = None
+    metadata: dict[str, str | list[str]] | None = None
 
 
 @router.post("/search-tool")
@@ -121,7 +121,8 @@ def search_tool_endpoint(
                         source_type=clean_up_source(doc.source_type),
                         content=doc.content.strip(),
                         updated_at=doc.updated_at,
-                        link=doc.link
+                        link=doc.link,
+                        metadata=doc.metadata
                     ) for doc in llm_docs
             ]
             return found_docs
