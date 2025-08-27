@@ -74,6 +74,9 @@ def _convert_message_to_document(
 
     semantic_identifier = f"{message.author.name} said{semantic_substring}: {snippet}"
 
+    if len(sections) > 0:
+        sections[0].text = f"{message.author.name} said{semantic_substring}: {sections[0].text}"
+
     return Document(
         id=f"{_DISCORD_DOC_ID_PREFIX}{message.id}",
         source=DocumentSource.DISCORD,
