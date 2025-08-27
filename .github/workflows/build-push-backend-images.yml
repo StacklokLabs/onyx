@@ -1,10 +1,11 @@
-name: Build and Push Local Images to ECR
+name: Build and Push Backend Images to ECR
 
 'on':
   push:
-    branches: [stacklok-main, main]
+    branches: [main]
     paths:
       - 'backend/Dockerfile'
+      - 'deployment/helm/charts/onyx/values.yaml'
       - 'backend/Dockerfile.model_server'
       - '.github/workflows/build-push-local-images.yml'
   workflow_dispatch:
@@ -106,22 +107,6 @@ jobs:
           tags: >-
             ${{ env.ECR_REGISTRY }}/onyx-backend:${{ steps.versions.outputs.version }},
             ${{ env.ECR_REGISTRY }}/onyx-backend:latest
-          build-args: |
-            BUILDKIT_STEP_LOG_MAX_SIZE=10485760
-            DOCKER_BUILDKIT=1
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push Onyx model server image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./backend
-          file: ./backend/Dockerfile.model_server
-          push: true
-          platforms: linux/arm64,linux/amd64
-          tags: >-
-            ${{ env.ECR_REGISTRY }}/onyx-model-server:${{ steps.versions.outputs.version }},
-            ${{ env.ECR_REGISTRY }}/onyx-model-server:latest
           build-args: |
             BUILDKIT_STEP_LOG_MAX_SIZE=10485760
             DOCKER_BUILDKIT=1
