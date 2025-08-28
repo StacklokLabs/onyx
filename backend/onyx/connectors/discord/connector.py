@@ -66,6 +66,13 @@ def _convert_message_to_document(
         # Add more detail to the semantic identifier if available
         semantic_substring += f" in Thread: {title}"
 
+        # Extract timestamp from snowflake ID manually
+        timestamp_ms = (int(message.id) >> 22) + 1420070400000
+        doc_updated_date = datetime.fromtimestamp(timestamp_ms / 1000, tz=timezone.utc)
+    else:
+
+        doc_updated_date = message.edited_at
+
     snippet: str = (
         message.content[:_SNIPPET_LENGTH].rstrip() + "..."
         if len(message.content) > _SNIPPET_LENGTH
@@ -81,7 +88,7 @@ def _convert_message_to_document(
         id=f"{_DISCORD_DOC_ID_PREFIX}{message.id}",
         source=DocumentSource.DISCORD,
         semantic_identifier=semantic_identifier,
-        doc_updated_at=message.edited_at,
+        doc_updated_at=doc_updated_date,
         title=title,
         sections=(cast(list[TextSection | ImageSection], sections)),
         metadata=metadata,
