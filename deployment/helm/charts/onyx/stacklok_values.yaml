@@ -742,3 +742,4 @@ configMap:
   DOMAIN: "localhost"
   # Chat Configs
   HARD_DELETE_CHATS: ""
+  GOOGLE_DRIVE_CONNECTOR_SIZE_THRESHOLD: "100000000"
