@@ -24,6 +24,13 @@ postgresql:
     secretKeys:
       # overwriting as postgres typically expects 'postgres-password'
       adminPasswordKey: postgres_password
+  image:
+    registry: "781189302813.dkr.ecr.us-east-1.amazonaws.com"
+    repository: postgresql
+    tag: "16.2.0-debian-12-r9"
+    pullPolicy: Always
+  imagePullSecrets:
+    - name: ecr-secret
 
 vespa:
   name: da-vespa-0
@@ -156,6 +163,13 @@ serviceAccount:
 
 nginx:
   enabled: true
+  image:
+    registry: "781189302813.dkr.ecr.us-east-1.amazonaws.com"
+    repository: nginx
+    tag: "1.25.4-debian-12-r3"
+    pullPolicy: Always
+  imagePullSecrets:
+    - name: ecr-secret
   containerPorts:
     http: 1024
   extraEnvVars:
